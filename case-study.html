@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Antipode — AI-mediated dialogue system</title>
+<meta name="description" content="Antipode is a conversational AI system for structured dialogue between people with opposing political positions. A value-based matching system brings participants together, while a real-time orchestration layer coordinates mediation, translation, clarification and source-based claim verification.">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='%230B0B0B'/><path d='M12 7.5v9M7.5 12h9' stroke='%23fff' stroke-width='2' stroke-linecap='round'/></svg>">
+<style>
+:root{
+  --bg:#FFFFFF; --card:#FFFFFF;
+  --line:#D9DADB; --line2:#C6C7C9;
+  --ink:#0B0B0B; --ink2:#55565A; --ink3:#8B8C90;
+  --accent:#2F6BFF; --accent-soft:#EAF0FF;
+  --ok:#15803D; --warn:#B45309;
+  --sh1:0 1px 2px rgba(16,24,40,.05); --sh2:0 18px 44px rgba(16,24,40,.12);
+  --ease:cubic-bezier(.2,.8,.28,1);
+  --font:"Inter","Suisse Int'l","Helvetica Neue",Helvetica,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit} svg{display:block}
+.wrap{max-width:1440px;margin:0 auto;padding:0 56px}
+@media(max-width:760px){.wrap{padding:0 22px}}
+
+/* motion */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.in{opacity:1;transform:none}
+.bl{filter:blur(10px);opacity:.25;transition:filter .9s var(--ease),opacity .9s var(--ease)}
+.bl.in{filter:blur(0);opacity:1}
+.lift{transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.lift:hover{transform:translateY(-5px);box-shadow:var(--sh2)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;transition-duration:.001s!important}.rv,.bl{opacity:1;transform:none;filter:none}}
+
+/* top */
+.top{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(14px)}
+.top .wrap{display:flex;align-items:center;gap:10px;height:64px}
+.plus{width:18px;height:18px;flex:none}
+.wm{font-size:14px;font-weight:600}
+.top a.open{margin-left:auto;font-size:13px;font-weight:600;color:#fff;background:var(--ink);padding:9px 18px;border-radius:999px;text-decoration:none}
+.top a.open:hover{background:#000}
+
+/* hero — the giant heading, right-aligned blur lede */
+.hero{padding:96px 0 72px}
+h1{font-size:clamp(52px,10.4vw,148px);line-height:.95;letter-spacing:-.035em;font-weight:700}
+.herorow{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:74px;align-items:start}
+.namerow{display:flex;align-items:center;gap:10px}
+.namerow .nm{font-size:15px;font-weight:600}
+.lede{font-size:clamp(19px,2.5vw,31px);line-height:1.32;letter-spacing:-.015em;font-weight:650;text-align:right;color:var(--ink)}
+@media(max-width:860px){.herorow{grid-template-columns:1fr;gap:28px}.lede{text-align:left}}
+
+/* meta */
+.meta{border-top:1px solid var(--line2);margin-top:70px}
+.meta .r{display:grid;grid-template-columns:220px 1fr;gap:30px;padding:15px 0;border-bottom:1px solid var(--line)}
+.meta .k{font-size:13px;color:var(--ink3)}
+.meta .v{font-size:13.5px;color:var(--ink2)}
+.meta .v b{color:var(--ink);font-weight:600}
+.meta .v .sl{color:var(--ink3);padding:0 7px}
+@media(max-width:640px){.meta .r{grid-template-columns:1fr;gap:4px}}
+
+/* full-bleed band */
+.band{position:relative;overflow:hidden}
+.band img{width:100%;display:block;transform:scale(1.04);transition:transform 1.6s var(--ease)}
+.band:hover img{transform:scale(1)}
+.band .cap{position:absolute;left:56px;bottom:26px;color:#fff;font-size:clamp(16px,2.2vw,24px);font-weight:600;letter-spacing:-.015em;text-shadow:0 2px 16px rgba(0,0,0,.4)}
+@media(max-width:760px){.band .cap{left:22px}}
+
+/* sections: label left, content right */
+.sec{display:grid;grid-template-columns:300px 1fr;gap:48px;padding:88px 0}
+.sec .lab{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;padding-top:8px}
+@media(max-width:860px){.sec{grid-template-columns:1fr;gap:20px;padding:64px 0}}
+h2.g{font-size:clamp(38px,6.4vw,88px);line-height:1.02;letter-spacing:-.03em;font-weight:700}
+.prose{color:var(--ink2);font-size:15px;line-height:1.75;max-width:52ch}
+.prose b{color:var(--ink);font-weight:600}
+.prose+.prose{margin-top:14px}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:44px;margin-top:44px}
+.cols3 h3{font-size:17px;font-weight:650}
+.cols3 p{color:var(--ink2);font-size:13.5px;line-height:1.65;margin-top:8px}
+@media(max-width:760px){.cols3{grid-template-columns:1fr;gap:26px}}
+
+/* journey cards row */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:56px}
+.jc{background:var(--card);border-radius:16px;padding:22px;box-shadow:var(--sh1)}
+.jc .toprow{display:flex;align-items:center;justify-content:space-between}
+.jc .dots{display:flex;gap:5px}
+.jc .dots i{width:7px;height:7px;border-radius:50%;background:var(--line2)}
+.jc .dots i.f{background:var(--ink)}
+.jc .num{font-size:11px;color:var(--ink3)}
+.jc .body{display:flex;gap:14px;align-items:center;margin-top:26px}
+.jc .thumb{width:58px;height:58px;border-radius:12px;flex:none;overflow:hidden;background:var(--accent-soft);display:grid;place-items:center}
+.jc .thumb svg{width:34px;height:34px;stroke:var(--accent);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.jc .t{font-size:19px;font-weight:650;letter-spacing:-.015em;line-height:1.25}
+@media(max-width:960px){.cards{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.cards{grid-template-columns:1fr}}
+
+/* interface shots */
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:44px}
+@media(max-width:960px){.shots{grid-template-columns:1fr}}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:44px}
+@media(max-width:960px){.shots{grid-template-columns:1fr}}
+.shotcell{background:linear-gradient(165deg,#F1F2F3,#E0E1E4 62%,#D7D8DB);border-radius:26px;height:600px;
+  overflow:hidden;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.75)}
+.shotcell::before{content:'';position:absolute;inset:0;background:radial-gradient(120% 80% at 50% -12%,rgba(255,255,255,.9),rgba(255,255,255,0) 62%);pointer-events:none}
+.shotcell.wide{grid-column:1/-1;height:648px}
+
+/* device shots — true 1:1 app screens scaled into the shot cell */
+.plate{width:390px;height:790px;position:absolute;left:50%;top:44px;transform:translateX(-50%) rotate(-5deg) scale(.62);transform-origin:top center;
+  flex:none;background:#FFFFFF;border:1px solid #33363B;border-radius:46px;
+  box-shadow:0 0 0 2px #40444B,0 0 0 3.5px #14161A,0 38px 64px -18px rgba(15,18,22,.45),0 14px 26px -8px rgba(15,18,22,.28);
+  overflow:hidden;position:relative}
+.shotcell:nth-child(even) .plate{transform:translateX(-50%) rotate(4deg) scale(.62)}
+.shotcell.wide .plate{transform:translateX(-50%) rotate(0deg) scale(.66);top:36px}
+.plate::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(118deg,rgba(255,255,255,.14),rgba(255,255,255,0) 36%)}
+.plate .pn{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:25px;border-radius:15px;background:#0E1116;z-index:5}
+.plate .ps{position:absolute;inset:0;padding:52px 22px 96px;overflow:hidden}
+.plate h4{font-size:26px;font-weight:650;letter-spacing:-.02em;color:#0E1116}
+.plate .sub{font-size:13px;color:#5B6472;margin-top:5px}
+.plate .label{font-size:13px;color:#5B6472;margin:20px 0 10px}
+.plate .tabpill{position:absolute;left:22px;right:22px;bottom:22px;background:rgba(255,255,255,.95);border:1px solid #E6E8EC;border-radius:999px;
+  display:flex;justify-content:space-between;align-items:center;padding:7px 13px;box-shadow:var(--sh1)}
+.plate .tabpill i{width:44px;height:42px;border-radius:50%;display:grid;place-items:center;color:#8A93A0}
+.plate .tabpill i.on{color:#0E1116}
+.plate .tabpill i.mic{width:50px;height:50px;background:var(--accent);color:#fff;transform:translateY(-7px);box-shadow:0 8px 18px rgba(47,107,255,.3)}
+.plate .tabpill svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.plate .railp{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 16px}
+.plate .railp b{font-size:11px;font-weight:600;color:#8A93A0;background:#F7F8FA;border:1px solid #E6E8EC;border-radius:999px;padding:4px 10px}
+.plate .railp b.on{color:var(--accent);background:var(--accent-soft);border-color:rgba(47,107,255,.25)}
+.plate .stcard{background:#fff;border:1px solid #E6E8EC;border-radius:16px;padding:15px 16px;margin-bottom:10px;box-shadow:var(--sh1)}
+.plate .stcard .q{font-size:13.5px;line-height:1.45;font-weight:550;color:#0E1116}
+.plate .stcard .opts{display:flex;gap:8px;margin-top:12px}
+.plate .stcard .opts b{flex:1;height:38px;border-radius:11px;background:#F7F8FA;border:1px solid #E6E8EC;display:grid;place-items:center;font-size:13px;color:#5B6472;font-weight:550}
+.plate .stcard .opts b.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.plate .cta{margin-top:16px;height:50px;border-radius:14px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:14.5px;font-weight:600;box-shadow:0 8px 20px rgba(47,107,255,.24)}
+.plate .sphere{position:relative;width:250px;height:250px;margin:20px auto 6px}
+.plate .sphere svg{position:absolute;inset:0;width:100%;height:100%}
+.plate .sphere .pt{position:absolute;transform:translate(-50%,-50%);text-align:center}
+.plate .sphere .pt i{display:block;width:13px;height:13px;border-radius:50%;background:var(--accent);margin:0 auto;box-shadow:0 0 0 4px var(--accent-soft)}
+.plate .sphere .pt.you i{background:#0E1116;box-shadow:0 0 0 4px #EEF0F3}
+.plate .sphere .pt span{display:block;font-size:11px;color:#5B6472;margin-top:6px}
+.plate .mrow{display:flex;justify-content:space-between;font-size:13px;padding:13px 0;border-bottom:1px solid #E6E8EC;color:#5B6472}
+.plate .mrow b{color:#0E1116;font-weight:600}
+.plate .chead{display:flex;align-items:center;gap:10px;padding:2px 0 12px;border-bottom:1px solid #E6E8EC}
+.plate .chead .nm{font-size:15px;font-weight:650;flex:1;color:#0E1116}
+.plate .mseg{display:flex;gap:2px;background:#EEF0F3;border-radius:999px;padding:3px}
+.plate .mseg b{padding:5px 11px;border-radius:999px;font-size:11px;color:#8A93A0;font-weight:550}
+.plate .mseg b.on{background:#fff;color:#0E1116;box-shadow:var(--sh1)}
+.plate .msg{margin-top:16px}
+.plate .msg .meta{font-size:11px;color:#8A93A0;margin-bottom:5px;display:flex;gap:7px;align-items:center}
+.plate .msg .meta i{width:6px;height:6px;border-radius:50%;background:#D7DAE0}
+.plate .msg.you .meta i{background:var(--accent)}
+.plate .msg.len .meta i{background:#0E1116}
+.plate .msg .bub{border-radius:14px;padding:11px 13px;font-size:13.5px;line-height:1.6;max-width:32ch}
+.plate .msg.you .bub{background:var(--accent-soft);color:#0E1116}
+.plate .msg.len .bub{background:#fff;border:1px solid #E6E8EC;color:#5B6472;box-shadow:var(--sh1)}
+.plate .msg .mnote{margin-top:7px;font-size:11.5px;color:#8A93A0;border-left:2px solid #E6E8EC;padding-left:10px;line-height:1.5}
+.plate .vcard{margin-top:9px;background:#fff;border:1px solid #E6E8EC;border-radius:12px;padding:11px 13px;max-width:32ch;box-shadow:var(--sh1)}
+.plate .vcard .h{font-size:11px;color:#5B6472;font-weight:600;display:flex;gap:7px;align-items:center}
+.plate .vcard .h i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.plate .vcard .c{font-size:12.5px;color:#0E1116;margin-top:7px;line-height:1.5}
+.plate .vcard .e{font-size:11px;color:var(--ok);margin-top:7px;font-weight:600}
+.plate .vcard .e.low{color:var(--warn)}
+.plate .rc{background:#fff;border:1px solid #E6E8EC;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--sh1)}
+.plate .rc .ty{font-size:11px;color:#5B6472;font-weight:600;display:flex;gap:7px;align-items:center}
+.plate .rc .ty i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.plate .rc .orig{margin-top:9px;font-size:12.5px;color:#8A93A0;text-decoration:line-through;text-decoration-color:rgba(180,83,9,.5);line-height:1.5}
+.plate .rc .med{margin-top:6px;font-size:13px;color:#0E1116;line-height:1.55}
+.plate .rc .acts{display:flex;gap:16px;margin-top:11px;font-size:12px;color:var(--accent);font-weight:600}
+.plate .sumg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.plate .sumg .c{background:#fff;border:1px solid #E6E8EC;border-radius:14px;padding:13px 14px;box-shadow:var(--sh1)}
+.plate .sumg .v{font-size:21px;font-weight:650;color:#0E1116}
+.plate .sumg .v.ok{color:var(--ok)}.plate .sumg .v.warn{color:var(--warn)}
+.plate .sumg .l{font-size:10.5px;color:#8A93A0;margin-top:5px}
+.plate .voicewrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding-bottom:70px}
+.plate .tring{width:250px;height:250px;position:relative}
+.plate .tring svg{position:absolute;inset:0;width:100%;height:100%}
+.plate .vstate{font-size:14px;color:#5B6472;margin-top:34px;max-width:26ch;line-height:1.6}
+.plate .vstate .who{display:block;font-size:12px;color:#8A93A0;margin-bottom:8px}
+.plate .vctl{display:flex;gap:26px;align-items:center;margin-top:30px}
+.plate .sdisc{width:42px;height:42px;border-radius:50%;background:#EEF0F3;display:grid;place-items:center;color:#5B6472}
+.plate .sdisc svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.plate .micbtn{width:68px;height:68px;border-radius:50%;background:linear-gradient(180deg,#4A82FF,#2458E0);color:#fff;display:grid;place-items:center;
+  box-shadow:0 0 0 9px rgba(47,107,255,.10),0 0 0 18px rgba(47,107,255,.05),0 12px 26px rgba(47,107,255,.35)}
+.plate .micbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.plate .vhint{font-size:11.5px;color:#8A93A0;margin-top:24px}
+.wscr{display:none}.wscr.on{display:block;animation:wIn .45s var(--ease)}
+@keyframes wIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.plate .wcomp{position:absolute;left:22px;right:22px;bottom:96px;display:flex;gap:8px}
+.plate .wcomp span{flex:1;background:#F7F8FA;border:1px solid #E6E8EC;border-radius:13px;height:48px;display:flex;align-items:center;padding:0 15px;font-size:13px;color:#8A93A0}
+.plate .wcomp b{width:48px;height:48px;border-radius:13px;background:linear-gradient(180deg,#4A82FF,#2458E0);display:grid;place-items:center;color:#fff}
+.plate .wcomp b svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.finger{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;z-index:9;pointer-events:none;
+  transition:left 1s var(--ease),top 1s var(--ease),opacity .3s}
+.finger i{display:block;width:34px;height:34px;border-radius:50%;background:rgba(14,17,22,.34);border:2px solid rgba(255,255,255,.92);box-shadow:0 4px 12px rgba(0,0,0,.32)}
+.finger.tap i{animation:tapk .5s var(--ease)}
+@keyframes tapk{0%{transform:scale(1)}45%{transform:scale(.8)}100%{transform:scale(1)}}
+.finger.tap::after{content:'';position:absolute;inset:-12px;border-radius:50%;border:2px solid rgba(47,107,255,.55);animation:ripw .6s var(--ease)}
+@keyframes ripw{from{transform:scale(.5);opacity:1}to{transform:scale(1.7);opacity:0}}
+.wcap{position:absolute;left:0;right:0;bottom:16px;text-align:center;font-size:13px;color:var(--ink2);font-weight:550}
+
+/* architecture diagram — sits on the page, animated flow dots */
+.dgwrap{overflow-x:auto;margin-top:44px;padding:30px 22px;background:#FAFAFB;border:1px solid var(--line);border-radius:20px}
+.dgwrap svg{min-width:1240px;width:100%;height:auto}
+.dg-h{font:500 13px var(--font);fill:var(--ink3)}
+.dg-t{font:600 14px var(--font);fill:var(--ink)}
+.dg-s{font:400 11px var(--font);fill:var(--ink2)}
+.dg-k{font:400 10px var(--font);fill:var(--ink3)}
+.dg-line{stroke:#C6C7C9;stroke-width:1.2;fill:none}
+.dg-dot{fill:#26272A}
+.dg-box{fill:#FFFFFF;stroke:#DFE0E2}
+.dg-dash{fill:none;stroke:#C6C7C9;stroke-dasharray:4 4}
+.flow{fill:#26272A}
+
+footer{border-top:1px solid var(--line2);padding:34px 0 64px;margin-top:40px}
+footer .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;color:var(--ink3);font-size:12.5px}
+footer b{color:var(--ink2);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="wm">Antipode</span>
+    <a class="open" href="index.html">Explore Antipode</a>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <h1 class="rv">AI-mediated dialogue system</h1>
+    <div class="herorow">
+      <div class="namerow rv">
+        <svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="nm">Antipode</span>
+      </div>
+      <p class="lede" id="lede">Antipode is a conversational AI system for structured dialogue between people with opposing political positions. A value-based matching system brings participants together, while a real-time orchestration layer coordinates mediation, translation, clarification and source-based claim verification throughout the conversation.</p>
+    </div>
+    <div class="meta rv">
+      <div class="r"><div class="k">Year</div><div class="v"><b>2025</b></div></div>
+      <div class="r"><div class="k">Project type</div><div class="v"><b>AI systems</b><span class="sl">/</span><b>Human–AI interaction</b><span class="sl">/</span><b>Conversational interfaces</b><span class="sl">/</span><b>Deliberative design</b></div></div>
+      <div class="r"><div class="k">Technical scope</div><div class="v">/ Value-based matching / Mediation orchestration / Reformulation / Clarification / Translation / Evidence verification / Consent levels / Contestable receipts</div></div>
+      <div class="r"><div class="k">Format</div><div class="v"><b>Mobile web application</b> + interactive case study</div></div>
+      <div class="r"><div class="k">Role</div><div class="v">Design · Research · Build</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="band rv">
+  <img src="assets/unsplash-1.jpg" alt="Two people face each other intently in conversation">
+  <div class="cap">Across the divide.</div>
+</div>
+
+<div class="wrap">
+  <section class="sec">
+    <div class="lab"><svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>About the project</div>
+    <div>
+      <p class="prose rv" style="max-width:64ch">Designed and built as an end-to-end conversational system, Antipode combines matching, real-time mediation, claim verification and interaction design in one mobile application. Nothing either participant says arrives raw: each contribution passes through an orchestration layer that can reformulate charged wording, request clarification, translate across idiom and check verifiable claims against sources — attaching context where evidence is sufficient and <b>withholding judgment where it is not</b>. The layer's intensity is a mutual consent, not a default, and after the session every intervention is itemised as a receipt that either participant can accept or restore.</p>
+      <div class="cols3">
+        <div class="rv"><h3>Match</h3><p>Pairs participants by maximal opinion distance using a structured intake, filtered by a shared top value so the pair has somewhere to stand.</p></div>
+        <div class="rv"><h3>Mediate</h3><p>Reformulates and contextualises, translating across idiom and culture — at a consent level either party can move, including to none.</p></div>
+        <div class="rv"><h3>Verify</h3><p>Flags verifiable claims and provides real-time, source-backed context where the evidentiary basis is sufficient — and withholds judgment where it is not.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="journey">
+    <div class="lab"><svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>How you interact</div>
+    <div>
+      <h2 class="g rv">Human – AI – Human</h2>
+      <p class="prose rv" style="margin-top:26px">After being matched with someone holding substantially different views, participants speak to each other through a real-time mediation layer. Each contribution is transcribed and assessed before it reaches the other person: it can be translated, neutrally reformulated, followed up for clarification or checked against external sources. The participants remain in direct dialogue with each other, while the AI intervenes only where the conversation requires mediation or context.</p>
+      <div class="cards">
+        <div class="jc lift rv"><div class="toprow"><span class="dots"><i class="f"></i><i></i><i></i><i></i></span><span class="num">01</span></div><div class="body"><span class="thumb"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h10"/><rect x="4" y="15" width="7" height="4" rx="2" fill="currentColor" stroke="none" opacity=".9"/></svg></span><span class="t">Build an opinion profile</span></div></div>
+        <div class="jc lift rv"><div class="toprow"><span class="dots"><i class="f"></i><i class="f"></i><i></i><i></i></span><span class="num">02</span></div><div class="body"><span class="thumb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><line x1="6.1" y1="17.9" x2="17.9" y2="6.1"/><circle cx="6.1" cy="17.9" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.9" cy="6.1" r="1.7" fill="currentColor" stroke="none"/></svg></span><span class="t">Match across disagreement</span></div></div>
+        <div class="jc lift rv"><div class="toprow"><span class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span><span class="num">03</span></div><div class="body"><span class="thumb"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v9H10l-6 4.5z"/><path d="M8 9h8M8 11.5h5"/></svg></span><span class="t">Speak through the mediation layer</span></div></div>
+        <div class="jc lift rv"><div class="toprow"><span class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span><span class="num">04</span></div><div class="body"><span class="thumb"><svg viewBox="0 0 24 24"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></span><span class="t">Verify and reflect</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab"><svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>The interface, up close</div>
+    <div>
+      <p class="prose rv">Every screen below is the live application rendered at true scale — the same build you can open and use.</p>
+      <div class="shots">
+        <div class="shotcell rv"><div class="plate"><div class="pn"></div><div class="ps"><div class="voicewrap"><div class="tring"><svg class="tickgen" viewBox="0 0 200 200"></svg></div><p class="vstate"><span class="who">Antipode</span>“Bypass the Cell 2 safety interlock.” It halted production 6–8 times a shift. Say approve, deny, hold — or show me.</p><div class="vctl"><span class="sdisc"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M9.5 14h5"/></svg></span><span class="micbtn"><svg viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></span><span class="sdisc"><svg viewBox="0 0 24 24"><path d="M5 4.5v15M9 12l10-7.5v15z"/></svg></span></div><p class="vhint">say approve, deny, hold — or show me</p></div></div></div></div>
+        <div class="shotcell rv"><div class="plate"><div class="pn"></div><div class="ps"><div class="railp"><b class="on">01 profile</b><b>02 match</b><b>03 speak</b><b>04 reflect</b></div><h4>Build an opinion profile</h4><div class="sub">Place yourself honestly — the match depends on it.</div><div class="label">Statement 1 of 4</div><div class="stcard"><div class="q">Migration quotas should be reduced.</div><div class="opts"><b class="on">for</b><b>against</b></div></div><div class="stcard"><div class="q">Public spending should prioritise climate over tax relief.</div><div class="opts"><b>for</b><b class="on">against</b></div></div><div class="stcard"><div class="q">Urban policing budgets should increase.</div><div class="opts"><b class="on">for</b><b>against</b></div></div><div class="label">What matters most to you</div><div class="stcard" style="padding:10px 12px"><div class="opts" style="margin-top:0"><b class="on">fairness</b><b>security</b><b>freedom</b></div></div><div class="cta">Find my antipode</div><div class="tabpill"><i class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.8 7-5.8s7 2.2 7 5.8"/></svg></i><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><line x1="6.1" y1="17.9" x2="17.9" y2="6.1"/><circle cx="6.1" cy="17.9" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.9" cy="6.1" r="1.7" fill="currentColor" stroke="none"/></svg></i><i class="mic"><svg viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></i><i><svg viewBox="0 0 24 24"><path d="M4 5.5h16v10H9l-5 4z"/></svg></i><i><svg viewBox="0 0 24 24"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/></svg></i></div></div></div></div>
+        <div class="shotcell rv"><div class="plate"><div class="pn"></div><div class="ps"><div class="railp"><b>01 profile</b><b class="on">02 match</b><b>03 speak</b><b>04 reflect</b></div><h4>Match across disagreement</h4><div class="sub">The point on the value sphere furthest from yours.</div><div class="sphere"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#D7DAE0" stroke-width=".7"/><line x1="21.7" y1="78.3" x2="78.3" y2="21.7" stroke="#C6CAD2" stroke-width=".7" stroke-dasharray="2 2"/></svg><div class="pt you" style="left:21.7%;top:78.3%"><i></i><span>you</span></div><div class="pt" style="left:78.3%;top:21.7%"><i></i><span>Lena M.</span></div></div><div class="mrow"><span>opinion distance</span><b>1.00 · maximal on 4 of 4</b></div><div class="mrow"><span>shared top value</span><b>fairness (shared)</b></div><div class="mrow"><span>session format</span><b>voice · mediated · 12 min</b></div><div class="mrow"><span>mediation consent</span><b>set together, in session</b></div><div class="cta">Begin session</div><div class="tabpill"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.8 7-5.8s7 2.2 7 5.8"/></svg></i><i class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><line x1="6.1" y1="17.9" x2="17.9" y2="6.1"/><circle cx="6.1" cy="17.9" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.9" cy="6.1" r="1.7" fill="currentColor" stroke="none"/></svg></i><i class="mic"><svg viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></i><i><svg viewBox="0 0 24 24"><path d="M4 5.5h16v10H9l-5 4z"/></svg></i><i><svg viewBox="0 0 24 24"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/></svg></i></div></div></div></div>
+        <div class="shotcell rv"><div class="plate"><div class="pn"></div><div class="ps"><div class="chead"><span class="nm">Lena M.</span><span class="mseg"><b>none</b><b class="on">light</b><b>full</b></span></div><div class="msg sys" style="margin-top:14px"><div class="meta"><i></i>mediation</div><div class="bub" style="background:none;box-shadow:none;border:none;padding:0;color:#8A93A0;font-size:12px">Session opened. Mediation level must be agreed before anything is delivered.</div></div><div class="msg you"><div class="meta"><i></i>you · delivered</div><div class="bub">These people often claim I disagree with about the crime rate, 40% of them offend.</div><div class="mnote">reformatted — 4 charged terms softened · claim check — withheld judgment</div><div class="vcard"><div class="h"><i></i>claim flagged · unverified</div><div class="c">“40% of them offend”</div><div class="e low">evidence insufficient — no judgment shown</div></div></div><div class="msg len"><div class="meta"><i></i>Lena M.</div><div class="bub">You keep saying “often”. I said 34% of municipal budgets. Check it.</div><div class="vcard"><div class="h"><i></i>claim flagged · verified</div><div class="c">“34% of municipal budgets”</div><div class="e">evidence sufficient — context shown</div></div></div><div class="tabpill"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.8 7-5.8s7 2.2 7 5.8"/></svg></i><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><line x1="6.1" y1="17.9" x2="17.9" y2="6.1"/><circle cx="6.1" cy="17.9" r="1.7" fill="currentColor" stroke="none"/><circle cx="17.9" cy="6.1" r="1.7" fill="currentColor" stroke="none"/></svg></i><i class="mic"><svg viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></i><i class="on"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v10H9l-5 4z"/></svg></i><i><svg viewBox="0 0 24 24"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/></svg></i></div></div></div></div>
+        <div class="shotcell wide rv"><div class="plate" id="walkPhone"><div class="pn"></div><div class="ps"><div class="wscr on" id="w-prof"><div class="railp"><b class="on">01 profile</b><b>02 match</b><b>03 speak</b><b>04 reflect</b></div><h4>Build an opinion profile</h4><div class="sub">Place yourself honestly — the match depends on it.</div><div class="label">Statement 1 of 4</div><div class="stcard"><div class="q">Migration quotas should be reduced.</div><div class="opts"><b class="on">for</b><b>against</b></div></div><div class="stcard"><div class="q">Urban policing budgets should increase.</div><div class="opts"><b>for</b><b class="on">against</b></div></div><div class="cta" id="wcta1">Find my antipode</div></div><div class="wscr" id="w-match"><div class="railp"><b>01 profile</b><b class="on">02 match</b><b>03 speak</b><b>04 reflect</b></div><h4>Match across disagreement</h4><div class="sub">The point on the value sphere furthest from yours.</div><div class="sphere"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#D7DAE0" stroke-width=".7"/><line x1="21.7" y1="78.3" x2="78.3" y2="21.7" stroke="#C6CAD2" stroke-width=".7" stroke-dasharray="2 2"/></svg><div class="pt you" style="left:21.7%;top:78.3%"><i></i><span>you</span></div><div class="pt" style="left:78.3%;top:21.7%"><i></i><span>Lena M.</span></div></div><div class="mrow"><span>opinion distance</span><b>1.00 · maximal</b></div><div class="mrow"><span>shared top value</span><b>fairness</b></div><div class="cta" id="wcta2">Begin session</div></div><div class="wscr" id="w-talk"><div class="chead"><span class="nm">Lena M.</span><span class="mseg"><b>none</b><b class="on">light</b><b>full</b></span></div><div class="msg you"><div class="meta"><i></i>you · delivered</div><div class="bub">These people often claim I disagree with about the crime rate, 40% of them offend.</div><div class="mnote">reformatted — 4 charged terms softened · claim check — withheld judgment</div></div><div class="msg len"><div class="meta"><i></i>Lena M.</div><div class="bub">I said 34% of municipal budgets. Check it.</div><div class="vcard"><div class="h"><i></i>claim flagged · verified</div><div class="c">“34% of municipal budgets”</div><div class="e">evidence sufficient — context shown</div></div></div><div class="wcomp"><span>say it as you mean it…</span><b id="wsend"><svg viewBox="0 0 24 24"><path d="M21 3 10.5 13.5M21 3l-6.8 18-3.7-7.5L3 9.8z"/></svg></b></div></div><div class="wscr" id="w-reflect"><div class="railp"><b>01 profile</b><b>02 match</b><b>03 speak</b><b class="on">04 reflect</b></div><h4>Verify and reflect</h4><div class="sub">What was checked, what was changed.</div><div class="sumg"><div class="c"><div class="v">2</div><div class="l">claims checked</div></div><div class="c"><div class="v ok">1</div><div class="l">evidence sufficient</div></div><div class="c"><div class="v warn">1</div><div class="l">judgment withheld</div></div><div class="c"><div class="v">1</div><div class="l">interventions</div></div></div><div class="label">Mediation receipts</div><div class="rc"><div class="ty"><i></i>reformatted</div><div class="orig">These idiots always lie about the crime rate, obviously 40% offend.</div><div class="med">These people often claim I disagree with about the crime rate, 40% offend.</div><div class="acts"><span>accept</span><span style="color:#8A93A0;font-weight:500">restore original</span></div></div></div></div><div class="finger" id="finger" style="opacity:0"><i></i></div><div class="wcap" id="wcap">01 · tap “Find my antipode”</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="band rv">
+  <img src="assets/unsplash-2.jpg" alt="Two people with headphones speaking into microphones across a table">
+  <div class="cap">Pilot session, Civic Assembly Lab.</div>
+</div>
+
+<div class="wrap">
+  <section class="sec">
+    <div class="lab"><svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>System architecture</div>
+    <div>
+      <p class="prose rv" style="max-width:64ch">Antipode is built as a modular mediation system that combines voice-first interaction, orchestration, real-time evidence verification and persistent conversational state within a deployable single-file application. Voice and text input move through a shared pipeline that coordinates mediation, verification and context management before assembling a response; profiles, consent and conversation state are stored separately from the generative layer.</p>
+      <div class="dgwrap rv"><svg viewBox="0 0 1600 560" role="img" aria-label="Antipode system architecture diagram">
+  <text class="dg-h" x="100" y="40">Interaction layer</text><line class="dg-line" x1="100" y1="52" x2="400" y2="52"/>
+  <text class="dg-h" x="450" y="40">AI orchestration</text><line class="dg-line" x1="450" y1="52" x2="900" y2="52"/>
+  <text class="dg-h" x="950" y="40">Response &amp; reflection</text><line class="dg-line" x1="950" y1="52" x2="1560" y2="52"/>
+
+  <text class="dg-t" x="24" y="252">Participant</text><text class="dg-s" x="24" y="270">voice / text</text>
+  <circle class="dg-dot" cx="102" cy="256" r="3"/><line class="dg-line" x1="102" y1="256" x2="116" y2="256"/>
+
+  <rect class="dg-box" x="116" y="212" width="210" height="90" rx="10"/>
+  <text class="dg-t" x="221" y="248" text-anchor="middle">Conversation interface</text>
+  <text class="dg-s" x="221" y="266" text-anchor="middle">Voice-first · optional text</text>
+  <text class="dg-k" x="221" y="284" text-anchor="middle">single-file · HTML / CSS / JS</text>
+  <circle class="dg-dot" cx="336" cy="256" r="3"/><line class="dg-line" x1="326" y1="256" x2="360" y2="256"/>
+
+  <rect class="dg-box" x="360" y="212" width="210" height="90" rx="10"/>
+  <text class="dg-t" x="465" y="248" text-anchor="middle">Voice &amp; language</text>
+  <text class="dg-s" x="465" y="266" text-anchor="middle">Speech · multilingual</text>
+  <text class="dg-k" x="465" y="284" text-anchor="middle">Web Speech API</text>
+  <circle class="dg-dot" cx="580" cy="256" r="3"/><line class="dg-line" x1="570" y1="256" x2="604" y2="256"/>
+
+  <rect class="dg-box" x="604" y="212" width="240" height="90" rx="10"/>
+  <text class="dg-t" x="724" y="248" text-anchor="middle">Conversation orchestration</text>
+  <text class="dg-s" x="724" y="266" text-anchor="middle">Routing · consent · workflows</text>
+  <text class="dg-k" x="724" y="284" text-anchor="middle">rule-based mediation pipeline</text>
+
+  <line class="dg-line" x1="844" y1="256" x2="874" y2="256"/>
+  <line class="dg-line" x1="874" y1="116" x2="874" y2="336"/>
+  <circle class="dg-dot" cx="874" cy="256" r="3"/>
+  <circle class="dg-dot" cx="874" cy="116" r="3"/><line class="dg-line" x1="874" y1="116" x2="904" y2="116"/>
+  <circle class="dg-dot" cx="874" cy="226" r="3"/><line class="dg-line" x1="874" y1="226" x2="904" y2="226"/>
+  <circle class="dg-dot" cx="874" cy="336" r="3"/><line class="dg-line" x1="874" y1="336" x2="904" y2="336"/>
+
+  <rect class="dg-box" x="904" y="80" width="230" height="72" rx="10"/>
+  <text class="dg-t" x="1019" y="110" text-anchor="middle">AI mediation</text>
+  <text class="dg-s" x="1019" y="128" text-anchor="middle">Interpret · reformulate · clarify</text>
+  <rect class="dg-box" x="904" y="190" width="230" height="72" rx="10"/>
+  <text class="dg-t" x="1019" y="220" text-anchor="middle">Evidence verification</text>
+  <text class="dg-s" x="1019" y="238" text-anchor="middle">Claims · source context</text>
+  <rect class="dg-box" x="904" y="300" width="230" height="72" rx="10"/>
+  <text class="dg-t" x="1019" y="330" text-anchor="middle">Conversation context</text>
+  <text class="dg-s" x="1019" y="348" text-anchor="middle">State · profile · receipts</text>
+
+  <line class="dg-line" x1="1134" y1="116" x2="1154" y2="116"/><circle class="dg-dot" cx="1154" cy="116" r="3"/>
+  <line class="dg-line" x1="1134" y1="226" x2="1154" y2="226"/><circle class="dg-dot" cx="1154" cy="226" r="3"/>
+  <line class="dg-line" x1="1134" y1="336" x2="1154" y2="336"/><circle class="dg-dot" cx="1154" cy="336" r="3"/>
+  <line class="dg-line" x1="1154" y1="116" x2="1154" y2="336"/>
+  <circle class="dg-dot" cx="1154" cy="256" r="3"/><line class="dg-line" x1="1154" y1="256" x2="1168" y2="256"/>
+
+  <rect class="dg-box" x="1168" y="212" width="180" height="90" rx="10"/>
+  <text class="dg-t" x="1258" y="248" text-anchor="middle">Response assembly</text>
+  <text class="dg-s" x="1258" y="266" text-anchor="middle">Mediated response</text>
+  <circle class="dg-dot" cx="1358" cy="256" r="3"/><line class="dg-line" x1="1348" y1="256" x2="1372" y2="256"/>
+
+  <rect class="dg-box" x="1372" y="212" width="180" height="90" rx="10"/>
+  <text class="dg-t" x="1462" y="248" text-anchor="middle">Voice / text output</text>
+  <text class="dg-s" x="1462" y="266" text-anchor="middle">Participant response</text>
+  <circle class="dg-dot" cx="1462" cy="312" r="3"/><line class="dg-line" x1="1462" y1="302" x2="1462" y2="344"/>
+
+  <rect class="dg-box" x="1372" y="344" width="180" height="72" rx="10"/>
+  <text class="dg-t" x="1462" y="374" text-anchor="middle">Conversation review</text>
+  <text class="dg-s" x="1462" y="392" text-anchor="middle">Reflection · comparison</text>
+
+  <line class="dg-line" x1="712" y1="302" x2="712" y2="436"/>
+  <line class="dg-line" x1="736" y1="302" x2="736" y2="436"/>
+  <text class="dg-k" x="750" y="380">state persistence</text>
+  <ellipse class="dg-box" cx="724" cy="448" rx="100" ry="12"/>
+  <path class="dg-box" d="M624 448 v52 a100 12 0 0 0 200 0 v-52"/>
+  <text class="dg-t" x="724" y="478" text-anchor="middle">Application data</text>
+  <text class="dg-s" x="724" y="496" text-anchor="middle">local state · no backend</text>
+
+  <rect class="dg-dash" x="1168" y="440" width="240" height="64" rx="10"/>
+  <text class="dg-k" x="1186" y="466">Deployment</text>
+  <text class="dg-s" x="1186" y="484">Static single-file · opens offline</text>
+
+  <circle class="flow" r="3.4"><animateMotion dur="5.5s" repeatCount="indefinite" path="M102 256 H844"/></circle>
+  <circle class="flow" r="3.4"><animateMotion dur="4.5s" begin="1s" repeatCount="indefinite" path="M874 336 V116"/></circle>
+  <circle class="flow" r="3.4"><animateMotion dur="4s" begin=".5s" repeatCount="indefinite" path="M1134 226 H1154 V256 H1168"/></circle>
+  <circle class="flow" r="3.4"><animateMotion dur="3.2s" begin="1.6s" repeatCount="indefinite" path="M1348 256 H1372"/></circle>
+  <circle class="flow" r="3.4"><animateMotion dur="3s" begin="2.2s" repeatCount="indefinite" path="M1462 302 V344"/></circle>
+  <circle class="flow" r="3.4"><animateMotion dur="4.4s" begin=".8s" repeatCount="indefinite" path="M724 302 V436"/></circle>
+</svg></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab"><svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>What it investigates</div>
+    <div>
+      <h2 class="g rv" style="max-width:22ch">When AI mediates a conversation, it also shapes the conditions under which that conversation takes place.</h2>
+      <p class="prose rv" style="margin-top:26px;max-width:64ch">Antipode investigates how mediation changes political dialogue: what happens when emotionally charged language is reformulated, vague arguments trigger follow-up questions, claims are checked against external sources and insufficient evidence leads the system to withhold judgment. These interventions can reduce immediate friction, but they also introduce new forms of influence through wording, timing, source selection and evidence thresholds. The project therefore treats neutrality as a system-design problem: when should AI intervene, what should remain untouched, and how can those interventions stay visible and contestable to the people in the conversation?</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab"><svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Where it applies</div>
+    <div>
+      <p class="prose rv" style="max-width:64ch">Matching, mediation, translation, verification and reflection are implemented as separate system functions. By adapting conversation rules, source context and interaction setup, Antipode can support different dialogue formats without changing the underlying mediation logic.</p>
+      <div class="cols3">
+        <div class="rv"><h3>Civic dialogue</h3><p>Structured conversations around contested public issues, participation processes and deliberative formats.</p></div>
+        <div class="rv"><h3>Cross-language dialogue</h3><p>Real-time translation and mediation for conversations where language differences would otherwise add friction or limit participation.</p></div>
+        <div class="rv"><h3>Facilitated dialogue</h3><p>Moderated formats for workshops, research and public participation, with clarification, source context and structured reflection integrated into the conversation.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab"><svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B0B0B"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>What it led to</div>
+    <div>
+      <p class="prose rv" style="max-width:64ch">Public testing informed the next iteration of the system. The pilot surfaced the two changes that mattered most: participants wanted the mediation level to be a visible, shared control rather than a setting, and they wanted every intervention recoverable after the fact. Both are now core — the consent dial in the conversation header, and the receipts screen where any intervention can be restored to its original wording.</p>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span><b>Antipode</b></span>
+    <span>2025 · single-file prototype · photography via Unsplash (lhon karwan, useproof)</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  /* scroll reveals */
+  var rv=document.querySelectorAll('.rv');
+  if('IntersectionObserver'in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.1,rootMargin:'0px 0px -6% 0px'});
+    rv.forEach(function(e,i){e.style.transitionDelay=(i%3)*80+'ms';io.observe(e);});
+  }else{rv.forEach(function(e){e.classList.add('in')});}
+  /* lede: clause-by-clause blur-in, like the reference */
+  var lede=document.getElementById('lede');
+  if(lede){
+    var words=lede.textContent.split(' ');
+    lede.textContent='';
+    var chunk='';
+    var spans=[];
+    words.forEach(function(w,i){
+      chunk+=(chunk?' ':'')+w;
+      if(i%6===5||i===words.length-1){spans.push(chunk);chunk='';}
+    });
+    lede.innerHTML=spans.map(function(t){return '<span class="bl">'+t+' </span>';}).join('');
+    var bl=lede.querySelectorAll('.bl');
+    if('IntersectionObserver'in window){
+      var io2=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){
+        var idx=Array.prototype.indexOf.call(bl,e.target);
+        setTimeout(function(){e.target.classList.add('in');},idx*90);
+        io2.unobserve(e.target);}});},{threshold:.2});
+      bl.forEach(function(s){io2.observe(s);});
+    }else{bl.forEach(function(s){s.classList.add('in')});}
+  }
+})();
+
+document.querySelectorAll('svg.tickgen').forEach(function(sv){var n=56,o='';
+for(var i=0;i<n;i++){var a=i/n*Math.PI*2,r1=76,r2=90;
+o+='<line x1="'+(100+Math.cos(a)*r1).toFixed(1)+'" y1="'+(100+Math.sin(a)*r1).toFixed(1)+
+'" x2="'+(100+Math.cos(a)*r2).toFixed(1)+'" y2="'+(100+Math.sin(a)*r2).toFixed(1)+
+'" stroke="#0E1116" stroke-width="4.4" stroke-linecap="round" opacity="'+(0.3+0.55*Math.abs(Math.sin(i*1.7))).toFixed(2)+'"/>';}
+sv.innerHTML=o;});
+
+/* self-playing UI walkthrough */
+(function(){
+  var phone=document.getElementById('walkPhone'); if(!phone) return;
+  var finger=document.getElementById('finger'), cap=document.getElementById('wcap');
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var steps=[
+    {scr:'w-prof',  t:'wcta1', cap:'01 · tap “Find my antipode”'},
+    {scr:'w-match', t:'wcta2', cap:'02 · tap “Begin session”'},
+    {scr:'w-talk',  t:'wsend', cap:'03 · send — nothing arrives raw'},
+    {scr:'w-talk',  t:null,    cap:'the layer reformulates, clarifies, verifies…', wait:1900},
+    {scr:'w-reflect',t:null,   cap:'04 · receipts — accept, or restore your words', wait:2600}];
+  var i=0;
+  function scale(){var r=phone.getBoundingClientRect();return r.width/390;}
+  function moveTo(el){
+    var pr=phone.getBoundingClientRect(), tr=el.getBoundingClientRect(), k=scale();
+    finger.style.left=((tr.left+tr.width/2-pr.left)/k)+'px';
+    finger.style.top=((tr.top+tr.height/2-pr.top)/k)+'px';
+    finger.style.opacity=1;
+  }
+  function show(id){['w-prof','w-match','w-talk','w-reflect'].forEach(function(x){
+    document.getElementById(x).classList.toggle('on',x===id);});}
+  function run(){
+    var st=steps[i]; show(st.scr); cap.textContent=st.cap;
+    if(reduce){ i=(i+1)%steps.length; setTimeout(run, st.wait||2200); return; }
+    if(st.t){
+      var el=document.getElementById(st.t);
+      finger.classList.remove('tap'); moveTo(el);
+      setTimeout(function(){finger.classList.add('tap');},1050);
+      setTimeout(function(){ i=(i+1)%steps.length; run(); },1750);
+    }else{
+      finger.style.opacity=0;
+      setTimeout(function(){ i=(i+1)%steps.length; run(); }, st.wait||1800);
+    }
+  }
+  setTimeout(run,900);
+})();
+</script>
+</body>
+</html>
